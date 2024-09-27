@@ -38,7 +38,6 @@
                 const updatedEntry = await response.json();
                 updateEntryInDOM(updatedEntry);
                 currentEditId = null; 
-                form.reset();
             } else {
                 const response = await fetch('http://localhost:4000/entries', {
                     method: 'POST',
@@ -48,6 +47,7 @@
                 const newEntry = await response.json();
                 displayEntry(newEntry);
             }
+            form.reset();
             currentEditId = undefined;
         });
 
