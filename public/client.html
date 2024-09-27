@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Food Diary</title>
+    <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+    <h1>Food Diary</h1>
+    <form id="entry-form">
+        <input type="text" id="food" placeholder="Food" required />
+        <input type="number" id="calories" placeholder="Calories" required />
+        <input type="date" id="date" required />
+        <button type="submit">Add Entry</button>
+    </form>
+
+    <h2>Entries</h2>
+    <ul id="entries-list"></ul>
+
+    <script>
+        const form = document.getElementById('entry-form');
+        const entriesList = document.getElementById('entries-list');
+        var currentEditId = undefined;
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const food = document.getElementById('food').value;
+            const calories = document.getElementById('calories').value;
+            const date = document.getElementById('date').value;
+
+            if (currentEditId) {
+                const response = await fetch(`http://localhost:4000/entries/${currentEditId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ food, calories, date })
+                });
+                const updatedEntry = await response.json();
+                updateEntryInDOM(updatedEntry);
+                currentEditId = null; 
+                form.reset();
+            } else {
+                const response = await fetch('http://localhost:4000/entries', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ food, calories, date })
+                });
+                const newEntry = await response.json();
+                displayEntry(newEntry);
+            }
+            currentEditId = undefined;
+        });
+
+        async function fetchEntries() {
+            const response = await fetch('http://localhost:4000/entries');
+            const entries = await response.json();
+            entries.forEach(displayEntry);
+        }
+
+        function displayEntry(entry) {
+            const li = document.createElement('li');
+            li.id = `entry-${entry.id}`;
+            li.innerHTML = `<span>${entry.food} - ${entry.calories} calories on ${entry.date}</span>`;
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.textContent = 'Delete';
+            deleteBtn.classList.add('delete-btn');
+            deleteBtn.addEventListener('click', async () => {
+                await fetch(`http://localhost:4000/entries/${entry.id}`, { method: 'DELETE' });
+                li.remove();
+            });
+
+            const editBtn = document.createElement('button');
+            editBtn.textContent = 'Edit';
+            editBtn.classList.add('edit-btn');
+            editBtn.addEventListener('click', () => {
+                currentEditId = entry.id;
+                document.getElementById('food').value = entry.food;
+                document.getElementById('calories').value = entry.calories;
+                document.getElementById('date').value = entry.date;
+            });
+
+            const buttonContainer = document.createElement('div');
+            buttonContainer.classList.add('entry-buttons');
+            buttonContainer.appendChild(editBtn);
+            buttonContainer.appendChild(deleteBtn);
+
+            li.appendChild(buttonContainer);
+            entriesList.appendChild(li);
+        }
+
+        function updateEntryInDOM(updatedEntry) {
+            const entryLi = document.getElementById(`entry-${updatedEntry.id}`);
+            entryLi.innerHTML = `<span>${updatedEntry.food} - ${updatedEntry.calories} calories on ${updatedEntry.date}</span>`;
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.textContent = 'Delete';
+            deleteBtn.classList.add('delete-btn');
+            deleteBtn.addEventListener('click', async () => {
+                await fetch(`http://localhost:4000/entries/${updatedEntry.id}`, { method: 'DELETE' });
+                entryLi.remove();
+            });
+
+            const editBtn = document.createElement('button');
+            editBtn.textContent = 'Edit';
+            editBtn.classList.add('edit-btn');
+            editBtn.addEventListener('click', () => {
+                document.getElementById('food').value = updatedEntry.food;
+                document.getElementById('calories').value = updatedEntry.calories;
+                document.getElementById('date').value = updatedEntry.date;
+                currentEditId = updatedEntry.id;
+            });
+
+            const buttonContainer = document.createElement('div');
+            buttonContainer.classList.add('entry-buttons');
+            buttonContainer.appendChild(editBtn);
+            buttonContainer.appendChild(deleteBtn);
+
+            entryLi.appendChild(buttonContainer);
+        }
+
+        fetchEntries();
+    </script>
+</body>
+</html>
